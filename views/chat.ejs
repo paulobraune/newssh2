@@ -1,0 +1,1940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Code Assistant</title>
+  <link rel="stylesheet" href="/css/design-system.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.2.5/marked.min.js"></script>
+  <style>
+    :root {
+      --chat-primary: #005CA0;
+      --chat-secondary: #4a4a4a;
+      --chat-bg: #f8f9fa;
+      --chat-user-bg: #e6f3ff;
+      --chat-assistant-bg: #f0f0f0;
+      --chat-border: #dee2e6;
+      --chat-hover: #e9ecef;
+      --file-list-bg: #ffffff;
+      --file-list-hover: #f8f9fa;
+      --scrollbar-thumb: #adb5bd;
+      --scrollbar-track: #f1f1f1;
+      --placeholder-color: #adb5bd;
+    }
+
+    body {
+      font-family: var(--font-family-base);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: var(--chat-bg);
+      overflow: hidden;
+    }
+    
+    .navbar {
+      background-color: var(--primary);
+      padding: 0.75rem 1.5rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+      z-index: 10;
+    }
+    
+    .navbar-brand img {
+      height: 35px;
+    }
+    
+    .connection-info {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: var(--border-radius);
+      margin-left: 1rem;
+    }
+    
+    .connection-badge {
+      display: inline-flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--border-radius-sm);
+      font-size: var(--font-size-sm);
+      margin-left: 0.5rem;
+    }
+    
+    .connection-badge .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #4CAF50;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    .navbar-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .main-container {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 300px;
+      background-color: var(--file-list-bg);
+      border-right: 1px solid var(--chat-border);
+      display: flex;
+      flex-direction: column;
+      transition: width 0.3s ease;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+    }
+
+    .sidebar-header {
+      padding: 1rem;
+      border-bottom: 1px solid var(--chat-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .sidebar-title {
+      font-weight: bold;
+      color: var(--chat-secondary);
+    }
+
+    .file-upload-area {
+      padding: 1rem;
+      border: 2px dashed var(--chat-border);
+      border-radius: var(--border-radius);
+      margin: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .file-upload-area:hover,
+    .file-upload-area.dragging {
+      background-color: var(--chat-hover);
+      border-color: var(--primary);
+    }
+
+    .file-upload-icon {
+      color: var(--primary);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .file-list-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.5rem;
+    }
+
+    .file-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .file-item {
+      padding: 0.5rem;
+      border-radius: var(--border-radius-sm);
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+
+    .file-item:hover {
+      background-color: var(--file-list-hover);
+    }
+
+    .file-item.active {
+      background-color: var(--chat-user-bg);
+    }
+
+    .file-icon {
+      margin-right: 0.5rem;
+      color: var(--chat-secondary);
+    }
+
+    .file-folder-icon {
+      color: #FFC107;
+    }
+
+    .file-code-icon {
+      color: #007bff;
+    }
+
+    .file-text-icon {
+      color: #6c757d;
+    }
+
+    .file-image-icon {
+      color: #28a745;
+    }
+
+    .folder-children {
+      padding-left: 1.5rem;
+      display: none;
+    }
+
+    .folder-open > .folder-children {
+      display: block;
+    }
+
+    .chat-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      overflow: hidden;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 1rem;
+    }
+
+    .message {
+      margin-bottom: 1.5rem;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .message-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      margin-right: 0.75rem;
+      background-color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .assistant-avatar {
+      background-color: var(--primary);
+    }
+
+    .user-avatar {
+      background-color: var(--secondary);
+    }
+
+    .message-author {
+      font-weight: bold;
+      color: var(--chat-secondary);
+    }
+
+    .message-content {
+      padding: 1rem;
+      border-radius: var(--border-radius);
+      line-height: 1.5;
+    }
+
+    .message-user .message-content {
+      background-color: var(--chat-user-bg);
+      border-top-left-radius: 0;
+    }
+
+    .message-assistant .message-content {
+      background-color: var(--chat-assistant-bg);
+      border-top-right-radius: 0;
+    }
+
+    .message-time {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: var(--gray-600);
+    }
+
+    .message-content pre {
+      background-color: #282c34;
+      border-radius: var(--border-radius-sm);
+      padding: 1rem;
+      overflow-x: auto;
+      position: relative;
+    }
+
+    .message-content pre code {
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .copy-code-button {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: var(--border-radius-sm);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .copy-code-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .copy-code-button:active {
+      background-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .chat-input-container {
+      display: flex;
+      flex-direction: column;
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      padding: 1rem;
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .chat-input {
+      flex: 1;
+      min-height: 60px;
+      max-height: 200px;
+      padding: 0.75rem;
+      border: 1px solid var(--chat-border);
+      border-radius: var(--border-radius);
+      resize: none;
+      font-family: var(--font-family-base);
+      font-size: 1rem;
+      line-height: 1.5;
+      overflow-y: auto;
+      transition: border-color 0.2s ease;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 0.2rem rgba(0, 92, 160, 0.25);
+    }
+
+    .chat-input::placeholder {
+      color: var(--placeholder-color);
+    }
+
+    .chat-send-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 0.75rem 1.5rem;
+      margin-left: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chat-send-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .chat-send-btn:disabled {
+      background-color: var(--gray-400);
+      cursor: not-allowed;
+    }
+
+    .chat-send-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .file-context {
+      margin-top: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--chat-border);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .file-context-item {
+      background-color: var(--file-list-bg);
+      border: 1px solid var(--chat-border);
+      border-radius: var(--border-radius-sm);
+      padding: 0.25rem 0.5rem;
+      display: flex;
+      align-items: center;
+      max-width: 200px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .file-context-remove {
+      margin-left: 0.25rem;
+      cursor: pointer;
+      color: var(--gray-600);
+      transition: color 0.2s ease;
+    }
+
+    .file-context-remove:hover {
+      color: var(--danger);
+    }
+
+    .model-selector {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--chat-border);
+      font-size: 0.9rem;
+    }
+
+    .model-selector label {
+      margin-right: 0.5rem;
+      color: var(--chat-secondary);
+    }
+
+    .model-select {
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--chat-border);
+      border-radius: var(--border-radius-sm);
+      background-color: white;
+      font-size: 0.9rem;
+    }
+
+    .model-info {
+      margin-left: 0.5rem;
+      color: var(--gray-600);
+      font-size: 0.8rem;
+    }
+
+    .loading-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      color: var(--gray-600);
+    }
+
+    .loading-spinner {
+      border: 3px solid rgba(0, 92, 160, 0.1);
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .toggle-sidebar-btn {
+      position: absolute;
+      left: 300px;
+      top: 50%;
+      transform: translateY(-50%);
+      background-color: white;
+      border: 1px solid var(--chat-border);
+      border-left: none;
+      border-radius: 0 4px 4px 0;
+      width: 20px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 5;
+      transition: left 0.3s ease;
+    }
+
+    .toggle-sidebar-btn.collapsed {
+      left: 0;
+    }
+
+    .new-chat-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 0.5rem 1rem;
+      margin-top: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+
+    .new-chat-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .new-chat-btn svg {
+      margin-right: 0.5rem;
+    }
+
+    .file-info-panel {
+      padding: 1rem;
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-sm);
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .file-info-panel.active {
+      display: block;
+    }
+
+    .file-info-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .file-info-title {
+      font-weight: bold;
+      color: var(--chat-secondary);
+    }
+
+    .file-info-close {
+      cursor: pointer;
+      color: var(--gray-600);
+      transition: color 0.2s ease;
+    }
+
+    .file-info-close:hover {
+      color: var(--danger);
+    }
+
+    .file-info-content {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      background-color: #f8f9fa;
+      border-radius: var(--border-radius-sm);
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--scrollbar-track);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--scrollbar-thumb);
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--gray-600);
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+      .main-container {
+        flex-direction: column;
+      }
+      
+      .sidebar {
+        width: 100%;
+        height: 50%;
+        border-right: none;
+        border-bottom: 1px solid var(--chat-border);
+      }
+      
+      .sidebar.collapsed {
+        height: 0;
+      }
+      
+      .toggle-sidebar-btn {
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, 0);
+        border-radius: 0 0 4px 4px;
+        width: 60px;
+        height: 20px;
+      }
+      
+      .toggle-sidebar-btn.collapsed {
+        top: 0;
+      }
+    }
+
+    /* File tree indicator lines */
+    .tree-line {
+      position: relative;
+    }
+
+    .tree-line::before {
+      content: "";
+      position: absolute;
+      left: -10px;
+      top: 0;
+      height: 100%;
+      border-left: 1px dashed var(--chat-border);
+    }
+
+    /* Syntax highlighting in chat */
+    .hljs {
+      padding: 1rem;
+      border-radius: var(--border-radius-sm);
+    }
+
+    /* Download button for code snippets */
+    .download-code-button {
+      position: absolute;
+      top: 0.5rem;
+      right: 3rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: var(--border-radius-sm);
+      color: white;
+      padding: 0.25rem 0.5rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .download-code-button:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="d-flex align-items-center" style="flex-wrap: wrap;">
+      <a class="navbar-brand" href="/">
+        <img src="https://assets.tracklead.com/assets/logo-tracklead-branca.png" alt="TrackLead Logo">
+      </a>
+      <div class="connection-info">
+        <span>Project:</span>
+        <strong style="margin-left: 5px;"><%= initialPath %></strong>
+        <span class="connection-badge">
+          <span class="status-dot"></span>AI Connected
+        </span>
+      </div>
+    </div>
+    
+    <div class="navbar-buttons">
+      <a href="/terminal?switchMode=true" class="btn btn-sm" style="background-color: rgba(0,0,0,0.2); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path d="M6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9zM3.854 4.146a.5.5 0 1 0-.708.708L4.793 6.5 3.146 8.146a.5.5 0 1 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2z"/>
+          <path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h12z"/>
+        </svg>
+        Switch to Terminal
+      </a>
+      <a href="/file_manager?switchMode=true" class="btn btn-sm" style="background-color: rgba(0,0,0,0.2); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+        </svg>
+        Switch to File Manager
+      </a>
+      <a href="/disconnect" class="btn btn-sm" style="background-color: rgba(0,0,0,0.2); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path fill-rule="evenodd" d="M8 3a5 5 0 0 0-5 5v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a6 6 0 1 1 12 0v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V8a5 5 0 0 0-5-5z"/>
+        </svg>
+        Disconnect
+      </a>
+      <a href="/logout" class="btn btn-sm" style="background-color: var(--danger); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+          <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+        </svg>
+        Logout
+      </a>
+    </div>
+  </nav>
+  
+  <div class="main-container">
+    <div class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Project Files</div>
+        <button class="new-chat-btn" id="clearFilesBtn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1H2.5zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5zM8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5zm3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0z"/>
+          </svg>
+          Clear Files
+        </button>
+      </div>
+      
+      <div class="file-upload-area" id="fileUploadArea">
+        <div class="file-upload-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+          </svg>
+        </div>
+        <p><strong>Upload Files or Folders</strong></p>
+        <p>Drag &amp; drop or click to select</p>
+        <input type="file" id="fileInput" webkitdirectory directory multiple style="display: none;">
+      </div>
+      
+      <div class="file-list-container">
+        <ul class="file-list" id="fileList">
+          <!-- Files will be populated here -->
+        </ul>
+      </div>
+    </div>
+    
+    <button class="toggle-sidebar-btn" id="toggleSidebarBtn">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+        <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+      </svg>
+    </button>
+    
+    <div class="chat-container">
+      <div class="model-selector">
+        <label for="modelSelect">AI Model:</label>
+        <select id="modelSelect" class="model-select">
+          <% Object.keys(aiModels).forEach(function(provider) { %>
+            <option value="<%= provider %>"><%= provider %> - <%= aiModels[provider].model %></option>
+          <% }); %>
+        </select>
+        <span class="model-info" id="modelInfo">Using Claude for in-depth code analysis</span>
+      </div>
+      
+      <div class="chat-messages" id="chatMessages">
+        <!-- Welcome message -->
+        <div class="message message-assistant">
+          <div class="message-header">
+            <div class="message-avatar assistant-avatar">AI</div>
+            <div class="message-author">AI Assistant</div>
+            <div class="message-time" data-timestamp="<%= new Date().toISOString() %>">Just now</div>
+          </div>
+          <div class="message-content">
+            <p>👋 Hello! I'm your AI code assistant. I can help you analyze your codebase, provide insights, suggest improvements, and answer questions about your project.</p>
+            <p>To get started, upload files or entire folders using the panel on the left. You can:</p>
+            <ul>
+              <li>Ask questions about code relationships</li>
+              <li>Get help with debugging issues</li>
+              <li>Receive implementation suggestions</li>
+              <li>Get explanations of technical concepts</li>
+            </ul>
+            <p>The more context you provide, the more helpful I can be!</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="chat-input-container">
+        <div class="file-context" id="fileContext">
+          <!-- Active file context will be displayed here -->
+        </div>
+        <div class="chat-input-wrapper">
+          <textarea
+            id="chatInput"
+            class="chat-input"
+            placeholder="Ask something about your code or project..."
+            rows="3"
+          ></textarea>
+          <button id="sendButton" class="chat-send-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <div class="file-info-panel" id="fileInfoPanel">
+        <div class="file-info-header">
+          <div class="file-info-title" id="fileInfoTitle">File Information</div>
+          <div class="file-info-close" id="fileInfoClose">×</div>
+        </div>
+        <div class="file-info-content" id="fileInfoContent">
+          <!-- File content will be displayed here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const sidebar = document.getElementById('sidebar');
+      const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+      const fileUploadArea = document.getElementById('fileUploadArea');
+      const fileInput = document.getElementById('fileInput');
+      const fileList = document.getElementById('fileList');
+      const chatMessages = document.getElementById('chatMessages');
+      const chatInput = document.getElementById('chatInput');
+      const sendButton = document.getElementById('sendButton');
+      const fileContext = document.getElementById('fileContext');
+      const modelSelect = document.getElementById('modelSelect');
+      const modelInfo = document.getElementById('modelInfo');
+      const clearFilesBtn = document.getElementById('clearFilesBtn');
+      const fileInfoPanel = document.getElementById('fileInfoPanel');
+      const fileInfoTitle = document.getElementById('fileInfoTitle');
+      const fileInfoContent = document.getElementById('fileInfoContent');
+      const fileInfoClose = document.getElementById('fileInfoClose');
+      
+      // Initialize socket connection
+      const socket = io({
+        query: {
+          sessionId: '<%= sessionId %>'
+        }
+      });
+      
+      // Project ID for chat history
+      const projectId = '<%= projectId %>';
+      
+      // Current chat state
+      let chatHistory = {
+        project_id: projectId,
+        timestamp: new Date().toISOString(),
+        messages: [],
+        file_context: []
+      };
+      
+      // Files in memory
+      let uploadedFiles = [];
+      let activeFiles = [];
+      
+      // Retrieve saved chat history on load
+      fetch(`/api/chat/${projectId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.messages && data.messages.length > 0) {
+            chatHistory = data;
+            renderChatHistory();
+            
+            // Load file context if any
+            if (data.file_context && data.file_context.length > 0) {
+              activeFiles = [...data.file_context];
+              renderFileContext();
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading chat history:', error);
+        });
+      
+      // Toggle sidebar
+      toggleSidebarBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        toggleSidebarBtn.classList.toggle('collapsed');
+        
+        // Update toggle button icon
+        if (sidebar.classList.contains('collapsed')) {
+          toggleSidebarBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+            </svg>
+          `;
+        } else {
+          toggleSidebarBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+            </svg>
+          `;
+        }
+      });
+      
+      // File upload via click
+      fileUploadArea.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Handle file selection
+      fileInput.addEventListener('change', (e) => {
+        handleFileUpload(e.target.files);
+      });
+      
+      // Drag and drop functionality
+      fileUploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.add('dragging');
+      });
+      
+      fileUploadArea.addEventListener('dragleave', () => {
+        fileUploadArea.classList.remove('dragging');
+      });
+      
+      fileUploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        fileUploadArea.classList.remove('dragging');
+        
+        if (e.dataTransfer.items) {
+          const items = e.dataTransfer.items;
+          handleFileUpload(items);
+        } else {
+          handleFileUpload(e.dataTransfer.files);
+        }
+      });
+      
+      // Handle file uploads
+      async function handleFileUpload(items) {
+        // Show loading state
+        fileUploadArea.innerHTML = `
+          <div class="loading-spinner"></div>
+          <p>Processing files...</p>
+        `;
+        
+        // Process files
+        try {
+          if (items.length === 0) {
+            return;
+          }
+          
+          for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            
+            // Skip hidden files
+            if (item.name && item.name.startsWith('.')) {
+              continue;
+            }
+            
+            // Read file
+            if (item.kind === 'file') {
+              const entry = item.webkitGetAsEntry();
+              await processEntry(entry, '');
+            } else if (item.file) {
+              await processFile(item, '');
+            } else {
+              // Regular file input
+              const file = item;
+              if (!file.name.startsWith('.')) {
+                await readFile(file, file.webkitRelativePath || file.name);
+              }
+            }
+          }
+          
+          // Render the file list
+          renderFileTree();
+          
+          // Restore upload area
+          restoreUploadArea();
+          
+          // Add a notification to the chat
+          const filesCount = uploadedFiles.length;
+          if (filesCount > 0) {
+            addSystemMessage(`📂 ${filesCount} file${filesCount === 1 ? '' : 's'} uploaded successfully.`);
+          }
+        } catch (error) {
+          console.error('Error processing files:', error);
+          
+          // Show error in upload area
+          fileUploadArea.innerHTML = `
+            <div class="file-upload-icon" style="color: var(--danger);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+              </svg>
+            </div>
+            <p style="color: var(--danger);"><strong>Error uploading files</strong></p>
+            <p>Please try again</p>
+          `;
+          
+          // Restore upload area after a delay
+          setTimeout(restoreUploadArea, 3000);
+        }
+      }
+      
+      // Process entry (file or directory)
+      async function processEntry(entry, path) {
+        if (entry.isFile) {
+          return new Promise((resolve, reject) => {
+            entry.file(async (file) => {
+              await readFile(file, path + '/' + file.name);
+              resolve();
+            }, reject);
+          });
+        } else if (entry.isDirectory) {
+          const dirReader = entry.createReader();
+          
+          return new Promise((resolve, reject) => {
+            const readEntries = async () => {
+              dirReader.readEntries(async (entries) => {
+                if (entries.length === 0) {
+                  resolve();
+                  return;
+                }
+                
+                try {
+                  for (const entry of entries) {
+                    await processEntry(entry, path + '/' + entry.name);
+                  }
+                  
+                  // Check if there are more entries
+                  readEntries();
+                } catch (error) {
+                  reject(error);
+                }
+              }, reject);
+            };
+            
+            readEntries();
+          });
+        }
+      }
+      
+      // Process individual file
+      async function processFile(item, path) {
+        return new Promise((resolve, reject) => {
+          item.file(async (file) => {
+            await readFile(file, path + '/' + file.name);
+            resolve();
+          }, reject);
+        });
+      }
+      
+      // Read file contents
+      async function readFile(file, path) {
+        return new Promise((resolve, reject) => {
+          // Skip large binary files
+          if (isBinaryFile(file) && file.size > 1024 * 1024) {
+            uploadedFiles.push({
+              name: path.replace(/^\//, ''),
+              type: 'binary',
+              size: file.size,
+              content: `Binary file (${formatFileSize(file.size)})`
+            });
+            resolve();
+            return;
+          }
+          
+          const reader = new FileReader();
+          
+          reader.onload = (e) => {
+            try {
+              let content = e.target.result;
+              
+              // For binary files, just store info
+              if (isBinaryFile(file)) {
+                content = `Binary file (${formatFileSize(file.size)})`;
+              }
+              
+              uploadedFiles.push({
+                name: path.replace(/^\//, ''),
+                type: getFileType(file.name),
+                size: file.size,
+                content: content
+              });
+              
+              resolve();
+            } catch (error) {
+              reject(error);
+            }
+          };
+          
+          reader.onerror = reject;
+          
+          if (isBinaryFile(file)) {
+            reader.readAsArrayBuffer(file);
+          } else {
+            reader.readAsText(file);
+          }
+        });
+      }
+      
+      // Check if a file is likely binary
+      function isBinaryFile(file) {
+        const binaryExtensions = [
+          '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.ico', '.webp',
+          '.mp3', '.mp4', '.wav', '.avi', '.mov', '.webm',
+          '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+          '.zip', '.rar', '.7z', '.tar', '.gz', '.exe', '.dll', '.so',
+          '.woff', '.woff2', '.ttf', '.eot', '.otf'
+        ];
+        
+        const extension = '.' + file.name.split('.').pop().toLowerCase();
+        return binaryExtensions.includes(extension);
+      }
+      
+      // Format file size
+      function formatFileSize(bytes) {
+        if (bytes < 1024) {
+          return bytes + ' bytes';
+        } else if (bytes < 1024 * 1024) {
+          return (bytes / 1024).toFixed(1) + ' KB';
+        } else {
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+      }
+      
+      // Get file type icon
+      function getFileType(filename) {
+        const extension = filename.split('.').pop().toLowerCase();
+        
+        const codeExtensions = ['js', 'jsx', 'ts', 'tsx', 'html', 'css', 'scss', 'less', 'php', 'py', 'rb', 'java', 'c', 'cpp', 'cs', 'go', 'rs', 'swift', 'kt', 'dart', 'vue', 'svelte'];
+        const textExtensions = ['txt', 'md', 'json', 'xml', 'csv', 'yml', 'yaml', 'toml', 'ini', 'log', 'env', 'gitignore', 'editorconfig', 'htaccess'];
+        const imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico'];
+        
+        if (codeExtensions.includes(extension)) {
+          return 'code';
+        } else if (textExtensions.includes(extension)) {
+          return 'text';
+        } else if (imageExtensions.includes(extension)) {
+          return 'image';
+        } else {
+          return 'file';
+        }
+      }
+      
+      // Restore upload area
+      function restoreUploadArea() {
+        fileUploadArea.innerHTML = `
+          <div class="file-upload-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+              <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+            </svg>
+          </div>
+          <p><strong>Upload Files or Folders</strong></p>
+          <p>Drag &amp; drop or click to select</p>
+        `;
+      }
+      
+      // Render file tree
+      function renderFileTree() {
+        if (uploadedFiles.length === 0) {
+          fileList.innerHTML = `<li class="file-item">No files uploaded yet</li>`;
+          return;
+        }
+        
+        // Sort files by path
+        uploadedFiles.sort((a, b) => a.name.localeCompare(b.name));
+        
+        // Build file tree structure
+        const tree = {};
+        
+        uploadedFiles.forEach(file => {
+          const parts = file.name.split('/');
+          let current = tree;
+          
+          for (let i = 0; i < parts.length; i++) {
+            const part = parts[i];
+            
+            if (i === parts.length - 1) {
+              // This is a file
+              current[part] = {
+                type: 'file',
+                fileType: file.type,
+                path: file.name,
+                size: file.size,
+                content: file.content
+              };
+            } else {
+              // This is a directory
+              if (!current[part]) {
+                current[part] = {
+                  type: 'directory',
+                  children: {}
+                };
+              }
+              
+              current = current[part].children;
+            }
+          }
+        });
+        
+        // Render the tree
+        fileList.innerHTML = '';
+        renderTreeNode(tree, fileList, '');
+      }
+      
+      // Render tree node
+      function renderTreeNode(node, parentElement, path) {
+        Object.keys(node).sort((a, b) => {
+          // Sort directories before files
+          const nodeA = node[a];
+          const nodeB = node[b];
+          
+          if (nodeA.type === 'directory' && nodeB.type !== 'directory') {
+            return -1;
+          } else if (nodeA.type !== 'directory' && nodeB.type === 'directory') {
+            return 1;
+          } else {
+            return a.localeCompare(b);
+          }
+        }).forEach(key => {
+          const item = node[key];
+          const itemPath = path ? path + '/' + key : key;
+          
+          const li = document.createElement('li');
+          li.className = 'file-item';
+          
+          // Set data attributes
+          li.dataset.path = itemPath;
+          li.dataset.type = item.type;
+          
+          if (item.type === 'file') {
+            li.dataset.fileType = item.fileType;
+            li.dataset.size = item.size;
+            
+            // Check if file is in active context
+            if (activeFiles.find(f => f.path === itemPath)) {
+              li.classList.add('active');
+            }
+            
+            // File icon based on type
+            let iconSvg = '';
+            
+            switch (item.fileType) {
+              case 'code':
+                iconSvg = `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-icon file-code-icon" viewBox="0 0 16 16">
+                    <path d="M10.478 1.647a.5.5 0 1 0-.956-.294l-4 13a.5.5 0 0 0 .956.294l4-13zM4.854 4.146a.5.5 0 0 1 0 .708L1.707 8l3.147 3.146a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708l3.5-3.5a.5.5 0 0 1 .708 0zm6.292 0a.5.5 0 0 0 0 .708L14.293 8l-3.147 3.146a.5.5 0 0 0 .708.708l3.5-3.5a.5.5 0 0 0 0-.708l-3.5-3.5a.5.5 0 0 0-.708 0z"/>
+                  </svg>
+                `;
+                break;
+              case 'text':
+                iconSvg = `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-icon file-text-icon" viewBox="0 0 16 16">
+                    <path d="M5 4a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm-.5 2.5A.5.5 0 0 1 5 6h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zM5 8a.5.5 0 0 0 0 1h6a.5.5 0 0 0 0-1H5zm0 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1H5z"/>
+                    <path d="M2 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2zm10-1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1z"/>
+                  </svg>
+                `;
+                break;
+              case 'image':
+                iconSvg = `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-icon file-image-icon" viewBox="0 0 16 16">
+                    <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                    <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                  </svg>
+                `;
+                break;
+              default:
+                iconSvg = `
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-icon" viewBox="0 0 16 16">
+                    <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5L14 4.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5h-2z"/>
+                  </svg>
+                `;
+            }
+            
+            li.innerHTML = `
+              ${iconSvg}
+              <span>${key}</span>
+            `;
+            
+            // Add click event
+            li.addEventListener('click', () => {
+              // Toggle active state
+              li.classList.toggle('active');
+              
+              if (li.classList.contains('active')) {
+                // Add to active files
+                const fileObj = uploadedFiles.find(f => f.name === itemPath);
+                
+                if (fileObj) {
+                  // Check if file is already in active files
+                  if (!activeFiles.find(f => f.path === itemPath)) {
+                    activeFiles.push({
+                      path: itemPath,
+                      type: item.fileType,
+                      content: fileObj.content
+                    });
+                  }
+                }
+              } else {
+                // Remove from active files
+                activeFiles = activeFiles.filter(f => f.path !== itemPath);
+              }
+              
+              // Update file context
+              renderFileContext();
+              
+              // Show file content
+              if (li.classList.contains('active')) {
+                showFileContent(itemPath);
+              }
+            });
+          } else {
+            // Directory
+            const folderLi = li;
+            folderLi.classList.add('folder');
+            
+            folderLi.innerHTML = `
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="file-icon file-folder-icon" viewBox="0 0 16 16">
+                <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+              </svg>
+              <span>${key}</span>
+            `;
+            
+            // Add click event for folder toggle
+            folderLi.addEventListener('click', (e) => {
+              // Prevent event from bubbling to parent folders
+              e.stopPropagation();
+              
+              folderLi.classList.toggle('folder-open');
+              
+              // Toggle folder icon
+              const folderIcon = folderLi.querySelector('.file-icon');
+              
+              if (folderLi.classList.contains('folder-open')) {
+                folderIcon.innerHTML = `
+                  <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+                `;
+              } else {
+                folderIcon.innerHTML = `
+                  <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+                `;
+              }
+            });
+            
+            // Create children container
+            const childrenContainer = document.createElement('ul');
+            childrenContainer.className = 'folder-children';
+            folderLi.appendChild(childrenContainer);
+            
+            // Render children
+            renderTreeNode(item.children, childrenContainer, itemPath);
+          }
+          
+          parentElement.appendChild(li);
+        });
+      }
+      
+      // Show file content in info panel
+      function showFileContent(path) {
+        const file = uploadedFiles.find(f => f.name === path);
+        
+        if (!file) {
+          return;
+        }
+        
+        fileInfoTitle.textContent = path;
+        
+        // Format and display content based on file type
+        let displayContent = file.content;
+        
+        if (file.type === 'code' || file.type === 'text') {
+          // For text-based files, show content
+          const extension = path.split('.').pop().toLowerCase();
+          
+          // Determine language for syntax highlighting
+          let language = '';
+          
+          switch (extension) {
+            case 'js':
+            case 'jsx':
+              language = 'javascript';
+              break;
+            case 'ts':
+            case 'tsx':
+              language = 'typescript';
+              break;
+            case 'html':
+              language = 'html';
+              break;
+            case 'css':
+              language = 'css';
+              break;
+            case 'scss':
+              language = 'scss';
+              break;
+            case 'json':
+              language = 'json';
+              break;
+            case 'md':
+              language = 'markdown';
+              break;
+            case 'py':
+              language = 'python';
+              break;
+            case 'java':
+              language = 'java';
+              break;
+            case 'php':
+              language = 'php';
+              break;
+            default:
+              language = 'plaintext';
+          }
+          
+          // Apply syntax highlighting
+          if (language !== 'plaintext') {
+            try {
+              displayContent = hljs.highlight(file.content, { language }).value;
+              fileInfoContent.innerHTML = displayContent;
+            } catch (e) {
+              fileInfoContent.textContent = file.content;
+            }
+          } else {
+            fileInfoContent.textContent = file.content;
+          }
+        } else {
+          // For binary files, just show info
+          fileInfoContent.textContent = displayContent;
+        }
+        
+        // Show the panel
+        fileInfoPanel.classList.add('active');
+      }
+      
+      // Close file info panel
+      fileInfoClose.addEventListener('click', () => {
+        fileInfoPanel.classList.remove('active');
+      });
+      
+      // Render file context in chat input
+      function renderFileContext() {
+        if (activeFiles.length === 0) {
+          fileContext.innerHTML = '';
+          fileContext.style.display = 'none';
+          return;
+        }
+        
+        fileContext.style.display = 'flex';
+        fileContext.innerHTML = '';
+        
+        activeFiles.forEach(file => {
+          const contextItem = document.createElement('div');
+          contextItem.className = 'file-context-item';
+          contextItem.title = file.path;
+          
+          const filename = file.path.split('/').pop();
+          
+          contextItem.innerHTML = `
+            <span>${filename}</span>
+            <span class="file-context-remove" data-path="${file.path}">×</span>
+          `;
+          
+          fileContext.appendChild(contextItem);
+        });
+        
+        // Update chat history
+        chatHistory.file_context = [...activeFiles];
+        saveChatHistory();
+        
+        // Add event listeners to remove buttons
+        document.querySelectorAll('.file-context-remove').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const path = e.target.dataset.path;
+            
+            // Remove from active files
+            activeFiles = activeFiles.filter(f => f.path !== path);
+            
+            // Update file tree visuals
+            const fileItem = document.querySelector(`.file-item[data-path="${path}"]`);
+            if (fileItem) {
+              fileItem.classList.remove('active');
+            }
+            
+            // Re-render file context
+            renderFileContext();
+          });
+        });
+      }
+      
+      // Clear files button
+      clearFilesBtn.addEventListener('click', () => {
+        if (uploadedFiles.length === 0) {
+          return;
+        }
+        
+        // Clear state
+        uploadedFiles = [];
+        activeFiles = [];
+        
+        // Clear UI
+        fileList.innerHTML = `<li class="file-item">No files uploaded yet</li>`;
+        fileInfoPanel.classList.remove('active');
+        renderFileContext();
+        
+        // Add system message
+        addSystemMessage('🗑️ All files have been cleared.');
+      });
+      
+      // Send message
+      sendButton.addEventListener('click', sendMessage);
+      
+      chatInput.addEventListener('keydown', (e) => {
+        // Send on Ctrl+Enter or Cmd+Enter
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+          e.preventDefault();
+          sendMessage();
+        }
+        
+        // Auto-grow the textarea
+        setTimeout(() => {
+          chatInput.style.height = 'auto';
+          chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+        }, 0);
+      });
+      
+      // Send message function
+      function sendMessage() {
+        const message = chatInput.value.trim();
+        
+        if (!message) {
+          return;
+        }
+        
+        // Add user message to chat
+        addUserMessage(message);
+        
+        // Clear input
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+        
+        // Generate unique file path for message
+        const filePath = activeFiles.length > 0 ? activeFiles[0].path : null;
+        
+        // Add to chat history
+        chatHistory.messages.push({
+          role: 'user',
+          content: message,
+          timestamp: new Date().toISOString(),
+          filePath: filePath
+        });
+        
+        // Save chat history
+        saveChatHistory();
+        
+        // Process message and get AI response
+        processMessage(message);
+      }
+      
+      // Process message and get AI response
+      async function processMessage(message) {
+        // Get selected model
+        const selectedModel = modelSelect.value;
+        
+        // Check if API key for selected provider exists
+        const apiKeysResponse = await fetch('/api/apikeys');
+        const apiKeys = await apiKeysResponse.json();
+        
+        const apiKey = apiKeys.find(key => key.provider === selectedModel);
+        
+        if (!apiKey) {
+          addSystemMessage('⚠️ No API key found for selected provider. Please add an API key in the settings.');
+          return;
+        }
+        
+        // Create a loading message
+        const loadingMessageId = 'loading-' + Date.now();
+        addLoadingMessage(loadingMessageId);
+        
+        try {
+          // Prepare context from files
+          const fileContext = activeFiles.map(file => ({
+            path: file.path,
+            content: file.content
+          }));
+          
+          // Prepare chat history for context
+          const historyContext = chatHistory.messages.map(msg => ({
+            role: msg.role,
+            content: msg.content
+          }));
+          
+          // Get project path for additional context
+          const projectPath = '<%= initialPath %>';
+          
+          // Create the request to the AI API
+          const response = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'anthropic-version': '<%= aiModels.anthropic.apiVersion %>',
+              'x-api-key': apiKey.apiKey,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: '<%= aiModels.anthropic.model %>',
+              messages: [
+                {
+                  role: 'user',
+                  content: `You are a highly intelligent AI assistant focused on helping developers with their code.
+                  
+Project context: 
+- Project path: ${projectPath}
+- Current files in context: ${activeFiles.map(f => f.path).join(', ')}
+
+File contents:
+${fileContext.map(file => `=== ${file.path} ===\n${file.content}\n`).join('\n')}
+
+Previous conversation:
+${historyContext.map(msg => `${msg.role}: ${msg.content}`).join('\n\n')}
+
+User's question:
+${message}
+
+Provide a detailed, technical response that is accurate, insightful, and shows deep understanding of the code. Focus on providing actionable advice, explaining concepts clearly, and suggesting specific solutions when appropriate. If code is involved, explain the solution thoroughly.`
+                }
+              ],
+              max_tokens: 4000
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (response.ok && data.content && data.content.length > 0) {
+            // Remove loading message
+            removeLoadingMessage(loadingMessageId);
+            
+            // Get the AI response
+            const aiResponse = data.content[0].text;
+            
+            // Add assistant message to chat
+            addAssistantMessage(aiResponse);
+            
+            // Add to chat history
+            chatHistory.messages.push({
+              role: 'assistant',
+              content: aiResponse,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Save chat history
+            saveChatHistory();
+          } else {
+            throw new Error(data.error?.message || 'Failed to get AI response');
+          }
+        } catch (error) {
+          console.error('Error getting AI response:', error);
+          
+          // Remove loading message
+          removeLoadingMessage(loadingMessageId);
+          
+          // Add error message
+          addSystemMessage(`❌ Error: ${error.message || 'Failed to get AI response'}`);
+        }
+      }
+      
+      // Add user message to chat
+      function addUserMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message message-user';
+        
+        const timestamp = new Date().toISOString();
+        const formattedTime = formatTimestamp(timestamp);
+        
+        messageElement.innerHTML = `
+          <div class="message-header">
+            <div class="message-avatar user-avatar">U</div>
+            <div class="message-author">You</div>
+            <div class="message-time" data-timestamp="${timestamp}">${formattedTime}</div>
+          </div>
+          <div class="message-content">
+            ${formatMessageContent(message)}
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Add assistant message to chat
+      function addAssistantMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message message-assistant';
+        
+        const timestamp = new Date().toISOString();
+        const formattedTime = formatTimestamp(timestamp);
+        
+        messageElement.innerHTML = `
+          <div class="message-header">
+            <div class="message-avatar assistant-avatar">AI</div>
+            <div class="message-author">AI Assistant</div>
+            <div class="message-time" data-timestamp="${timestamp}">${formattedTime}</div>
+          </div>
+          <div class="message-content">
+            ${formatMessageContent(message)}
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        
+        // Add copy and download buttons to code blocks
+        messageElement.querySelectorAll('pre code').forEach(codeBlock => {
+          const pre = codeBlock.parentElement;
+          
+          // Add copy button
+          const copyButton = document.createElement('button');
+          copyButton.className = 'copy-code-button';
+          copyButton.textContent = 'Copy';
+          copyButton.addEventListener('click', () => {
+            navigator.clipboard.writeText(codeBlock.textContent).then(() => {
+              copyButton.textContent = 'Copied!';
+              setTimeout(() => {
+                copyButton.textContent = 'Copy';
+              }, 2000);
+            });
+          });
+          
+          // Add download button
+          const downloadButton = document.createElement('button');
+          downloadButton.className = 'download-code-button';
+          downloadButton.textContent = 'Download';
+          downloadButton.addEventListener('click', () => {
+            // Try to determine filename from code block language or context
+            let language = codeBlock.className.replace('language-', '').trim();
+            let extension = getExtensionFromLanguage(language);
+            let filename = `code-snippet${extension}`;
+            
+            // Create downloadable link
+            const blob = new Blob([codeBlock.textContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          });
+          
+          pre.appendChild(copyButton);
+          pre.appendChild(downloadButton);
+        });
+      }
+      
+      // Add system message to chat
+      function addSystemMessage(message) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message';
+        
+        const timestamp = new Date().toISOString();
+        const formattedTime = formatTimestamp(timestamp);
+        
+        messageElement.innerHTML = `
+          <div class="message-content" style="background-color: var(--gray-200); font-style: italic; text-align: center;">
+            ${message}
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Add loading message
+      function addLoadingMessage(id) {
+        const messageElement = document.createElement('div');
+        messageElement.className = 'message message-assistant';
+        messageElement.id = id;
+        
+        messageElement.innerHTML = `
+          <div class="message-header">
+            <div class="message-avatar assistant-avatar">AI</div>
+            <div class="message-author">AI Assistant</div>
+            <div class="message-time">Just now</div>
+          </div>
+          <div class="message-content">
+            <div class="loading-indicator">
+              <div class="loading-spinner"></div>
+              <div>Processing your request...</div>
+            </div>
+          </div>
+        `;
+        
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Remove loading message
+      function removeLoadingMessage(id) {
+        const loadingMessage = document.getElementById(id);
+        if (loadingMessage) {
+          loadingMessage.remove();
+        }
+      }
+      
+      // Format message content with markdown and code highlighting
+      function formatMessageContent(content) {
+        // Use marked to parse markdown
+        marked.setOptions({
+          highlight: function(code, lang) {
+            if (lang && hljs.getLanguage(lang)) {
+              try {
+                return hljs.highlight(code, { language: lang }).value;
+              } catch (err) {}
+            }
+            
+            try {
+              return hljs.highlightAuto(code).value;
+            } catch (err) {}
+            
+            return code;
+          }
+        });
+        
+        return marked.parse(content);
+      }
+      
+      // Format timestamp
+      function formatTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const now = new Date();
+        
+        // Format as time if today, otherwise include date
+        if (date.toDateString() === now.toDateString()) {
+          return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else {
+          return date.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + 
+                 date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+      }
+      
+      // Get file extension from language
+      function getExtensionFromLanguage(language) {
+        const extensions = {
+          javascript: '.js',
+          typescript: '.ts',
+          jsx: '.jsx',
+          tsx: '.tsx',
+          html: '.html',
+          css: '.css',
+          scss: '.scss',
+          python: '.py',
+          java: '.java',
+          ruby: '.rb',
+          go: '.go',
+          rust: '.rs',
+          php: '.php',
+          csharp: '.cs',
+          cpp: '.cpp',
+          c: '.c',
+          json: '.json',
+          xml: '.xml',
+          markdown: '.md',
+          yaml: '.yml',
+          shell: '.sh',
+          bash: '.sh',
+          sql: '.sql'
+        };
+        
+        return extensions[language] || '.txt';
+      }
+      
+      // Render chat history
+      function renderChatHistory() {
+        // Clear chat messages except welcome message
+        chatMessages.innerHTML = '';
+        
+        // Add welcome message
+        const welcomeMessage = document.createElement('div');
+        welcomeMessage.className = 'message message-assistant';
+        
+        welcomeMessage.innerHTML = `
+          <div class="message-header">
+            <div class="message-avatar assistant-avatar">AI</div>
+            <div class="message-author">AI Assistant</div>
+            <div class="message-time" data-timestamp="${new Date().toISOString()}">Just now</div>
+          </div>
+          <div class="message-content">
+            <p>👋 Hello! I'm your AI code assistant. I can help you analyze your codebase, provide insights, suggest improvements, and answer questions about your project.</p>
+            <p>To get started, upload files or entire folders using the panel on the left. You can:</p>
+            <ul>
+              <li>Ask questions about code relationships</li>
+              <li>Get help with debugging issues</li>
+              <li>Receive implementation suggestions</li>
+              <li>Get explanations of technical concepts</li>
+            </ul>
+            <p>The more context you provide, the more helpful I can be!</p>
+          </div>
+        `;
+        
+        chatMessages.appendChild(welcomeMessage);
+        
+        // Add chat history messages
+        chatHistory.messages.forEach(message => {
+          if (message.role === 'user') {
+            addUserMessage(message.content);
+          } else if (message.role === 'assistant') {
+            addAssistantMessage(message.content);
+          }
+        });
+        
+        // Scroll to bottom
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      // Save chat history
+      function saveChatHistory() {
+        // Update timestamp
+        chatHistory.timestamp = new Date().toISOString();
+        
+        // Save to server
+        fetch(`/api/chat/${projectId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(chatHistory)
+        })
+        .catch(error => {
+          console.error('Error saving chat history:', error);
+        });
+      }
+      
+      // Model selector change
+      modelSelect.addEventListener('change', () => {
+        const selectedModel = modelSelect.value;
+        
+        switch (selectedModel) {
+          case 'anthropic':
+            modelInfo.textContent = 'Using Claude for in-depth code analysis';
+            break;
+          case 'openai':
+            modelInfo.textContent = 'Using OpenAI for general code assistance';
+            break;
+          case 'deepseek':
+            modelInfo.textContent = 'Using DeepSeek for specialized reasoning tasks';
+            break;
+          default:
+            modelInfo.textContent = '';
+        }
+      });
+      
+      // Update relative timestamps periodically
+      setInterval(() => {
+        document.querySelectorAll('.message-time[data-timestamp]').forEach(timeElement => {
+          const timestamp = timeElement.dataset.timestamp;
+          timeElement.textContent = formatTimestamp(timestamp);
+        });
+      }, 60000); // Update every minute
+    });
+  </script>
+</body>
+</html>

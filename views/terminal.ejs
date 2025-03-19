@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH Terminal</title>
+  <link rel="stylesheet" href="/css/design-system.css">
+  <style>
+    body {
+      font-family: var(--font-family-base);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background-color: var(--gray-100);
+      overflow: hidden;
+    }
+    
+    .navbar {
+      background-color: var(--primary);
+      padding: 0.75rem 1.5rem;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: var(--shadow);
+      z-index: 10;
+    }
+    
+    .navbar-brand img {
+      height: 35px;
+    }
+    
+    .connection-info {
+      display: flex;
+      align-items: center;
+      font-size: 1rem;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 1rem;
+      border-radius: var(--border-radius);
+      margin-left: 1rem;
+    }
+    
+    .connection-badge {
+      display: inline-flex;
+      align-items: center;
+      background-color: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      padding: 0.25rem 0.5rem;
+      border-radius: var(--border-radius-sm);
+      font-size: var(--font-size-sm);
+      margin-left: 0.5rem;
+    }
+    
+    .connection-badge .status-dot {
+      width: 8px;
+      height: 8px;
+      background-color: #4CAF50;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 5px;
+    }
+    
+    .navbar-buttons {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .terminal-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      overflow: hidden;
+    }
+    
+    .terminal-card {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background-color: white;
+      border-radius: var(--border-radius-lg);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    
+    .terminal-header {
+      background-color: var(--gray-800);
+      color: white;
+      padding: 0.5rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: monospace;
+    }
+    
+    .terminal-title {
+      display: flex;
+      align-items: center;
+      font-size: var(--font-size-sm);
+    }
+    
+    .terminal-title svg {
+      margin-right: 0.5rem;
+    }
+    
+    .terminal-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .terminal-action {
+      background: none;
+      border: none;
+      color: var(--gray-400);
+      cursor: pointer;
+      padding: 0.25rem;
+      border-radius: var(--border-radius-sm);
+      transition: var(--transition-base);
+    }
+    
+    .terminal-action:hover {
+      color: white;
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    #terminal-output {
+      flex: 1;
+      background-color: #1e1e1e;
+      color: #f0f0f0;
+      font-family: 'Courier New', monospace;
+      padding: 1rem;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    
+    .command-form {
+      display: flex;
+      background-color: var(--gray-800);
+      padding: 0.5rem;
+      border-top: 1px solid var(--gray-700);
+    }
+    
+    .command-prompt {
+      color: #4CAF50;
+      padding: 0.75rem 0.5rem;
+      font-family: monospace;
+      user-select: none;
+    }
+    
+    #command-input {
+      flex: 1;
+      background-color: var(--gray-800);
+      color: white;
+      border: none;
+      font-family: monospace;
+      font-size: 14px;
+      padding: 0.75rem 0.5rem;
+    }
+    
+    #command-input:focus {
+      outline: none;
+    }
+    
+    #send-btn {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      border-radius: var(--border-radius-sm);
+      padding: 0 1rem;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+    
+    #send-btn:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .error-text {
+      color: #ff5252;
+      font-weight: bold;
+    }
+    
+    .info-text {
+      color: #2196f3;
+      font-weight: bold;
+    }
+    
+    .success-text {
+      color: #4caf50;
+      font-weight: bold;
+    }
+    
+    /* Typewriter effect */
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    
+    .cursor {
+      display: inline-block;
+      width: 8px;
+      height: 16px;
+      background-color: #fff;
+      animation: blink 1s infinite;
+      vertical-align: middle;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .navbar {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0.75rem;
+      }
+      
+      .navbar-brand {
+        margin-bottom: 0.5rem;
+      }
+      
+      .connection-info {
+        margin-left: 0;
+        margin-bottom: 0.5rem;
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .navbar-buttons {
+        width: 100%;
+        justify-content: space-between;
+      }
+      
+      .terminal-container {
+        padding: 0.5rem;
+      }
+    }
+
+    /* Shortcuts panel */
+    .shortcuts-panel {
+      position: absolute;
+      bottom: 70px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.8);
+      border-radius: var(--border-radius);
+      padding: 1rem;
+      color: white;
+      font-family: monospace;
+      font-size: 0.85rem;
+      box-shadow: var(--shadow);
+      z-index: 100;
+      max-width: 300px;
+      display: none;
+    }
+
+    .shortcuts-panel.active {
+      display: block;
+    }
+
+    .shortcut-item {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+
+    .shortcut-key {
+      background-color: rgba(255, 255, 255, 0.2);
+      padding: 0.1rem 0.5rem;
+      border-radius: 3px;
+      margin-right: 0.5rem;
+    }
+
+    .shortcut-command {
+      color: #4CAF50;
+    }
+
+    .shortcut-title {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+      padding-bottom: 0.5rem;
+    }
+    
+    /* Terminal ANSI colors */
+    .term-fg-0 { color: #000000; }    /* Black */
+    .term-fg-1 { color: #cd0000; }    /* Red */
+    .term-fg-2 { color: #00cd00; }    /* Green */
+    .term-fg-3 { color: #cdcd00; }    /* Yellow */
+    .term-fg-4 { color: #0000ee; }    /* Blue */
+    .term-fg-5 { color: #cd00cd; }    /* Magenta */
+    .term-fg-6 { color: #00cdcd; }    /* Cyan */
+    .term-fg-7 { color: #e5e5e5; }    /* White */
+    /* Bright versions */
+    .term-fg-8 { color: #7f7f7f; }    /* Bright Black (Gray) */
+    .term-fg-9 { color: #ff0000; }    /* Bright Red */
+    .term-fg-10 { color: #00ff00; }   /* Bright Green */
+    .term-fg-11 { color: #ffff00; }   /* Bright Yellow */
+    .term-fg-12 { color: #5c5cff; }   /* Bright Blue */
+    .term-fg-13 { color: #ff00ff; }   /* Bright Magenta */
+    .term-fg-14 { color: #00ffff; }   /* Bright Cyan */
+    .term-fg-15 { color: #ffffff; }   /* Bright White */
+    
+    /* Terminal ANSI Background colors */
+    .term-bg-0 { background-color: #000000; }
+    .term-bg-1 { background-color: #cd0000; }
+    .term-bg-2 { background-color: #00cd00; }
+    .term-bg-3 { background-color: #cdcd00; }
+    .term-bg-4 { background-color: #0000ee; }
+    .term-bg-5 { background-color: #cd00cd; }
+    .term-bg-6 { background-color: #00cdcd; }
+    .term-bg-7 { background-color: #e5e5e5; }
+    
+    /* Terminal text styles */
+    .term-bold { font-weight: bold; }
+    .term-italic { font-style: italic; }
+    .term-underline { text-decoration: underline; }
+    .term-blink { animation: blink 1s infinite; }
+    .term-invisible { opacity: 0; }
+    .term-strikethrough { text-decoration: line-through; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="d-flex align-items-center" style="flex-wrap: wrap;">
+      <a class="navbar-brand" href="/">
+        <img src="https://assets.tracklead.com/assets/logo-tracklead-branca.png" alt="TrackLead Logo">
+      </a>
+      <div class="connection-info">
+        <span>SSH:</span>
+        <strong style="margin-left: 5px;"><%= username %>@<%= host %></strong>
+        <span class="connection-badge">
+          <span class="status-dot"></span>Connected
+        </span>
+      </div>
+    </div>
+    
+    <div class="navbar-buttons">
+      <a href="/file_manager?switchMode=true" class="btn btn-sm" style="background-color: rgba(0,0,0,0.2); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path d="M.54 3.87.5 3a2 2 0 0 1 2-2h3.672a2 2 0 0 1 1.414.586l.828.828A2 2 0 0 0 9.828 3h3.982a2 2 0 0 1 1.992 2.181l-.637 7A2 2 0 0 1 13.174 14H2.826a2 2 0 0 1-1.991-1.819l-.637-7a1.99 1.99 0 0 1 .342-1.31zM2.19 4a1 1 0 0 0-.996 1.09l.637 7a1 1 0 0 0 .995.91h10.348a1 1 0 0 0 .995-.91l.637-7A1 1 0 0 0 13.81 4H2.19zm4.69-1.707A1 1 0 0 0 6.172 2H2.5a1 1 0 0 0-1 .981l.006.139C1.72 3.042 1.95 3 2.19 3h5.396l-.707-.707z"/>
+        </svg>
+        Switch to File Manager
+      </a>
+      <a href="/chat?switchMode=true" class="btn btn-sm" style="background-color: rgba(0,0,0,0.2); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path d="M5 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm4 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>
+          <path d="m2.165 15.803.02-.004c1.83-.363 2.948-.842 3.468-1.105A9.06 9.06 0 0 0 8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6a10.437 10.437 0 0 1-.524 2.318l-.003.011a10.722 10.722 0 0 1-.244.637c-.079.186.074.394.273.362a21.673 21.673 0 0 0 .693-.125zm.8-3.108a1 1 0 0 0-.287-.801C1.618 10.83 1 9.468 1 8c0-3.192 3.004-6 7-6s7 2.808 7 6c0 3.193-3.004 6-7 6a8.06 8.06 0 0 1-2.088-.272 1 1 0 0 0-.711.074c-.387.196-1.24.57-2.634.893a10.97 10.97 0 0 0 .398-2z"/>
+        </svg>
+        Switch to AI Chat
+      </a>
+      <a href="/disconnect" class="btn btn-sm" style="background-color: rgba(0,0,0,0.2); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path fill-rule="evenodd" d="M8 3a5 5 0 0 0-5 5v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a6 6 0 1 1 12 0v5a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1V8a5 5 0 0 0-5-5z"/>
+        </svg>
+        Disconnect
+      </a>
+      <a href="/logout" class="btn btn-sm" style="background-color: var(--danger); color: white;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" style="vertical-align: text-bottom; margin-right: 5px;">
+          <path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0v2z"/>
+          <path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/>
+        </svg>
+        Logout
+      </a>
+    </div>
+  </nav>
+  
+  <div class="terminal-container">
+    <div class="terminal-card">
+      <div class="terminal-header">
+        <div class="terminal-title">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M6 9a.5.5 0 0 1 .5-.5h3a.5.5 0 0 1 0 1h-3A.5.5 0 0 1 6 9zM3.854 4.146a.5.5 0 1 0-.708.708L4.793 6.5 3.146 8.146a.5.5 0 1 0 .708.708l2-2a.5.5 0 0 0 0-.708l-2-2z"/>
+            <path d="M2 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2H2zm12 1a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h12z"/>
+          </svg>
+          <%= username %>@<%= host %> - <%= initialPath %>
+        </div>
+        
+        <div class="terminal-actions">
+          <button class="terminal-action" id="toggle-shortcuts" title="Show keyboard shortcuts">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M14 5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h12zM2 4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H2z"/>
+              <path d="M13 10.25a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm0-2a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm-5 0A.25.25 0 0 1 8.25 8h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 8 8.75v-.5zm2 0a.25.25 0 0 1 .25-.25h1.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-1.5a.25.25 0 0 1-.25-.25v-.5zm1 2a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm-5-2A.25.25 0 0 1 6.25 8h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 6 8.75v-.5zm-2 0A.25.25 0 0 1 4.25 8h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 4 8.75v-.5zm-2 0A.25.25 0 0 1 2.25 8h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 2 8.75v-.5zm11-2a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm-2 0a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm-2 0A.25.25 0 0 1 9.25 6h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 9 6.75v-.5zm-2 0A.25.25 0 0 1 7.25 6h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 7 6.75v-.5zm-2 0A.25.25 0 0 1 5.25 6h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5A.25.25 0 0 1 5 6.75v-.5zm-3 0A.25.25 0 0 1 2.25 6h1.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-1.5A.25.25 0 0 1 2 6.75v-.5zm0 4a.25.25 0 0 1 .25-.25h.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-.5a.25.25 0 0 1-.25-.25v-.5zm2 0a.25.25 0 0 1 .25-.25h5.5a.25.25 0 0 1 .25.25v.5a.25.25 0 0 1-.25.25h-5.5a.25.25 0 0 1-.25-.25v-.5z"/>
+            </svg>
+          </button>
+          <button class="terminal-action" id="clear-terminal" title="Clear terminal">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5Zm-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5ZM4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06Zm6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528ZM8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5Z"/>
+            </svg>
+          </button>
+          <button class="terminal-action" id="toggle-theme" title="Toggle theme">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M8 15A7 7 0 1 0 8 1v14zm0 1A8 8 0 1 1 8 0a8 8 0 0 1 0 16z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      
+      <div id="terminal-output"></div>
+      
+      <form id="command-form" class="command-form">
+        <span class="command-prompt">&gt;</span>
+        <input type="text" id="command-input" placeholder="Enter command..." autocomplete="off" autofocus>
+        <button type="submit" id="send-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083l6-15Zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471-.47 1.178Z"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Keyboard shortcuts panel -->
+  <div class="shortcuts-panel" id="shortcuts-panel">
+    <div class="shortcut-title">Keyboard Shortcuts</div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">Ctrl+L</span></span>
+      <span class="shortcut-command">clear</span>
+    </div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">Alt+D</span></span>
+      <span class="shortcut-command">cd ..</span>
+    </div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">Alt+L</span></span>
+      <span class="shortcut-command">ls -la</span>
+    </div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">Alt+S</span></span>
+      <span class="shortcut-command">npm start</span>
+    </div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">Alt+R</span></span>
+      <span class="shortcut-command">npm run</span>
+    </div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">Alt+H</span></span>
+      <span class="shortcut-command">Show/Hide Shortcuts</span>
+    </div>
+    <div class="shortcut-item">
+      <span><span class="shortcut-key">↑/↓</span></span>
+      <span class="shortcut-command">Command History</span>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const output = document.getElementById('terminal-output');
+      const commandForm = document.getElementById('command-form');
+      const commandInput = document.getElementById('command-input');
+      const clearBtn = document.getElementById('clear-terminal');
+      const themeBtn = document.getElementById('toggle-theme');
+      const toggleShortcutsBtn = document.getElementById('toggle-shortcuts');
+      const shortcutsPanel = document.getElementById('shortcuts-panel');
+      
+      let darkTheme = true;
+      
+      // ANSI escape sequence handler
+      class AnsiParser {
+        constructor(terminal) {
+          this.terminal = terminal;
+          this.state = this.groundState;
+          this.currentParam = 0;
+          this.params = [];
+          this.collected = '';
+          this.cursorX = 0;
+          this.cursorY = 0;
+          this.savedCursorX = 0;
+          this.savedCursorY = 0;
+          this.currentForeground = 7; // Default white text
+          this.currentBackground = 0; // Default black background
+          this.bold = false;
+          this.italic = false;
+          this.underline = false;
+          this.blink = false;
+          this.invisible = false;
+          this.strikethrough = false;
+          this.rawText = '';
+          this.processedText = '';
+          this.currentElement = null;
+          this.buffer = '';
+        }
+        
+        // Parse ANSI sequences
+        parse(data) {
+          let result = '';
+          let skipNext = false;
+          
+          for (let i = 0; i < data.length; i++) {
+            if (skipNext) {
+              skipNext = false;
+              continue;
+            }
+            
+            const char = data[i];
+            
+            // Handle escape sequences
+            if (char === '\x1B') {
+              // Check for CSI (Control Sequence Introducer) - ESC [
+              if (i + 1 < data.length && data[i + 1] === '[') {
+                // Skip the '[' character
+                skipNext = true;
+                
+                // Process the CSI sequence
+                let csiSequence = '';
+                let j = i + 2;
+                
+                // Collect everything until a letter
+                while (j < data.length && !this.isLetter(data[j])) {
+                  csiSequence += data[j];
+                  j++;
+                }
+                
+                // If we found a terminating letter, include it
+                if (j < data.length) {
+                  const terminator = data[j];
+                  
+                  // Handle the CSI sequence based on the terminator
+                  result += this.handleCsiSequence(csiSequence, terminator);
+                  
+                  // Skip all the sequence characters we've processed
+                  i = j;
+                }
+              } else if (i + 1 < data.length && data[i + 1] === ']') {
+                // Skip the ']' character
+                skipNext = true;
+                
+                // Process the OSC sequence (Operating System Command)
+                let oscSequence = '';
+                let j = i + 2;
+                
+                // Collect everything until ST (String Terminator) or BEL
+                while (j < data.length && data[j] !== '\x07' && (j + 1 >= data.length || data.substr(j, 2) !== '\x1B\\')) {
+                  oscSequence += data[j];
+                  j++;
+                }
+                
+                // Skip the sequence
+                i = j;
+              } else {
+                // Single escape, ignore (likely part of a more complex sequence we're not handling)
+                result += char;
+              }
+            } else if (char === '\r') {
+              // Carriage return - ignore as we'll handle \n
+              continue;
+            } else if (char === '\n') {
+              // New line
+              result += '\n';
+            } else if (char.charCodeAt(0) < 32 && char !== '\t') {
+              // Other control characters - ignore
+              continue;
+            } else {
+              // Normal character
+              result += char;
+            }
+          }
+          
+          return result;
+        }
+        
+        // Is this character a letter (used to terminate CSI sequences)
+        isLetter(char) {
+          return /[a-zA-Z]/.test(char);
+        }
+        
+        // Handle CSI (Control Sequence Introducer) sequences
+        handleCsiSequence(sequence, terminator) {
+          // Parse parameters
+          const params = sequence.split(';').map(p => p === '' ? 0 : parseInt(p, 10));
+          
+          switch (terminator) {
+            case 'm': // SGR (Select Graphic Rendition)
+              return this.handleSgr(params);
+            case 'H': // CUP (Cursor Position)
+            case 'f': // HVP (Horizontal and Vertical Position)
+              // Cursor positioning - we ignore these in a web terminal
+              return '';
+            case 'J': // ED (Erase in Display)
+              // Clear screen commands - we ignore most except 'clear all'
+              return '';
+            case 'K': // EL (Erase in Line)
+              // Clear line commands - we ignore
+              return '';
+            case 'A': // CUU (Cursor Up)
+            case 'B': // CUD (Cursor Down)
+            case 'C': // CUF (Cursor Forward)
+            case 'D': // CUB (Cursor Backward)
+              // Cursor movement - we ignore
+              return '';
+            case 'h': // SM (Set Mode)
+            case 'l': // RM (Reset Mode)
+              // Mode changes - we ignore
+              return '';
+            case 'r': // DECSTBM (Set Top and Bottom Margins)
+              // Scrolling region - we ignore
+              return '';
+            case 's': // SCP (Save Cursor Position)
+              // Save cursor - we ignore
+              return '';
+            case 'u': // RCP (Restore Cursor Position)
+              // Restore cursor - we ignore
+              return '';
+            default:
+              // Unknown or unsupported sequence - ignore
+              return '';
+          }
+        }
+        
+        // Handle SGR (Select Graphic Rendition) parameters
+        handleSgr(params) {
+          // If no parameters, treat as reset (0)
+          if (params.length === 0) {
+            params = [0];
+          }
+          
+          let span = document.createElement('span');
+          let classes = [];
+          let style = {};
+          
+          for (let i = 0; i < params.length; i++) {
+            const param = params[i];
+            
+            switch (param) {
+              case 0: // Reset all attributes
+                classes = [];
+                style = {};
+                break;
+              case 1: // Bold
+                classes.push('term-bold');
+                break;
+              case 3: // Italic
+                classes.push('term-italic');
+                break;
+              case 4: // Underline
+                classes.push('term-underline');
+                break;
+              case 5: // Blink
+              case 6: // Rapid blink
+                classes.push('term-blink');
+                break;
+              case 7: // Inverse (swap fg and bg)
+                // We'll handle this via style swapping
+                const temp = this.currentForeground;
+                this.currentForeground = this.currentBackground;
+                this.currentBackground = temp;
+                break;
+              case 8: // Invisible
+                classes.push('term-invisible');
+                break;
+              case 9: // Strikethrough
+                classes.push('term-strikethrough');
+                break;
+              case 21: // Double underline (treat as regular underline)
+                classes.push('term-underline');
+                break;
+              case 22: // Not bold
+                classes = classes.filter(c => c !== 'term-bold');
+                break;
+              case 23: // Not italic
+                classes = classes.filter(c => c !== 'term-italic');
+                break;
+              case 24: // Not underlined
+                classes = classes.filter(c => c !== 'term-underline');
+                break;
+              case 25: // Not blinking
+                classes = classes.filter(c => c !== 'term-blink');
+                break;
+              case 27: // Not inverse
+                // Not handling inverse
+                break;
+              case 28: // Not invisible
+                classes = classes.filter(c => c !== 'term-invisible');
+                break;
+              case 29: // Not strikethrough
+                classes = classes.filter(c => c !== 'term-strikethrough');
+                break;
+              case 30:
+              case 31:
+              case 32:
+              case 33:
+              case 34:
+              case 35:
+              case 36:
+              case 37:
+                // Standard foreground colors
+                classes.push(`term-fg-${param - 30}`);
+                break;
+              case 38: // Extended foreground color
+                if (params[i+1] === 5 && i+2 < params.length) {
+                  // 8-bit color (256 colors)
+                  classes.push(`term-fg-${params[i+2] % 16}`);
+                  i += 2; // Skip the next two parameters
+                } else if (params[i+1] === 2 && i+4 < params.length) {
+                  // 24-bit RGB color
+                  const r = params[i+2];
+                  const g = params[i+3];
+                  const b = params[i+4];
+                  style.color = `rgb(${r},${g},${b})`;
+                  i += 4; // Skip the next four parameters
+                }
+                break;
+              case 39: // Default foreground color
+                classes = classes.filter(c => !c.startsWith('term-fg-'));
+                if (style.color) delete style.color;
+                break;
+              case 40:
+              case 41:
+              case 42:
+              case 43:
+              case 44:
+              case 45:
+              case 46:
+              case 47:
+                // Standard background colors
+                classes.push(`term-bg-${param - 40}`);
+                break;
+              case 48: // Extended background color
+                if (params[i+1] === 5 && i+2 < params.length) {
+                  // 8-bit color (256 colors)
+                  classes.push(`term-bg-${params[i+2] % 8}`);
+                  i += 2; // Skip the next two parameters
+                } else if (params[i+1] === 2 && i+4 < params.length) {
+                  // 24-bit RGB color
+                  const r = params[i+2];
+                  const g = params[i+3];
+                  const b = params[i+4];
+                  style.backgroundColor = `rgb(${r},${g},${b})`;
+                  i += 4; // Skip the next four parameters
+                }
+                break;
+              case 49: // Default background color
+                classes = classes.filter(c => !c.startsWith('term-bg-'));
+                if (style.backgroundColor) delete style.backgroundColor;
+                break;
+              case 90:
+              case 91:
+              case 92:
+              case 93:
+              case 94:
+              case 95:
+              case 96:
+              case 97:
+                // Bright foreground colors
+                classes.push(`term-fg-${param - 90 + 8}`);
+                break;
+              case 100:
+              case 101:
+              case 102:
+              case 103:
+              case 104:
+              case 105:
+              case 106:
+              case 107:
+                // Bright background colors (treat as regular background)
+                classes.push(`term-bg-${param - 100}`);
+                break;
+            }
+          }
+          
+          // Create the span with the appropriate classes
+          if (classes.length > 0) {
+            span.className = classes.join(' ');
+          }
+          
+          // Apply any inline styles
+          if (Object.keys(style).length > 0) {
+            for (const [key, value] of Object.entries(style)) {
+              span.style[key] = value;
+            }
+          }
+          
+          return span.outerHTML;
+        }
+        
+        // Get a string representation for display
+        processString(text) {
+          return this.parse(text);
+        }
+      }
+      
+      // Terminal output processor
+      class TerminalOutput {
+        constructor(outputElement) {
+          this.outputElement = outputElement;
+          this.parser = new AnsiParser(this);
+          this.lines = [];
+          this.currentLine = '';
+          this.cursorX = 0;
+        }
+        
+        // Add text to the terminal
+        write(text, className) {
+          // Process ANSI sequences
+          const processedText = this.parser.processString(text);
+          
+          // Handle newlines
+          const lines = processedText.split('\n');
+          
+          // Process each line
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            // If it's the first line, append to the current line
+            if (i === 0) {
+              this.appendToCurrentLine(line, className);
+            } else {
+              // For subsequent lines, create a new line
+              this.addNewLine();
+              this.appendToCurrentLine(line, className);
+            }
+          }
+          
+          // Auto scroll to bottom
+          this.outputElement.scrollTop = this.outputElement.scrollHeight;
+        }
+        
+        // Append text to the current line
+        appendToCurrentLine(text, className) {
+          // Create a container for the new content
+          const span = document.createElement('span');
+          
+          // Add class if specified
+          if (className) {
+            span.className = className;
+          }
+          
+          // Check if text contains HTML (from ANSI processing)
+          if (text.includes('<span')) {
+            span.innerHTML = text;
+          } else {
+            span.textContent = text;
+          }
+          
+          // Append to the output
+          this.outputElement.appendChild(span);
+        }
+        
+        // Add a new line to the terminal
+        addNewLine() {
+          this.outputElement.appendChild(document.createElement('br'));
+        }
+        
+        // Clear the terminal
+        clear() {
+          this.outputElement.innerHTML = '';
+          this.lines = [];
+          this.currentLine = '';
+          this.cursorX = 0;
+        }
+      }
+      
+      // Create terminal output handler
+      const terminalOutput = new TerminalOutput(output);
+      
+      // Clear terminal
+      clearBtn.addEventListener('click', () => {
+        terminalOutput.clear();
+        terminalOutput.write('Terminal cleared.\n', 'info-text');
+      });
+      
+      // Toggle theme
+      themeBtn.addEventListener('click', () => {
+        darkTheme = !darkTheme;
+        
+        if (darkTheme) {
+          output.style.backgroundColor = '#1e1e1e';
+          output.style.color = '#f0f0f0';
+        } else {
+          output.style.backgroundColor = '#f5f5f5';
+          output.style.color = '#333';
+        }
+        
+        terminalOutput.write(`Theme switched to ${darkTheme ? 'dark' : 'light'} mode.\n`, 'info-text');
+      });
+      
+      // Toggle shortcuts panel
+      toggleShortcutsBtn.addEventListener('click', toggleShortcutsPanel);
+      
+      function toggleShortcutsPanel() {
+        shortcutsPanel.classList.toggle('active');
+      }
+      
+      // Generate a session ID from the current session
+      const sessionId = Math.random().toString(36).substring(2, 15);
+      
+      // Welcome text with ASCII art
+      const welcomeText = `
+ _____         _   _               _   
+|_   _|_ _ ___| |_| |    ___  __ _| |_ 
+  | |/ _\` / __| __| |   / _ \\/ _\` | __|
+  | | (_| \\__ \\ |_| |__|  __/ (_| | |_ 
+  |_|\\__,_|___/\\__|_____\\___|\\__,_|\\__|
+                                       
+  SSH Client - Connected to <%= username %>@<%= host %>
+  Working directory: <%= initialPath %>
+  
+  Type commands below or 'exit' to disconnect
+  Press Alt+H to show keyboard shortcuts
+      `;
+      
+      // Initialize Socket.IO connection with correct encoding
+      const socket = io({
+        query: {
+          sessionId: sessionId
+        }
+      });
+      
+      // Add welcome text
+      output.innerHTML = `<pre style="color: var(--primary); font-weight: bold;">${welcomeText}</pre>`;
+      
+      // Connect to SSH when page loads
+      socket.emit('connect-ssh', {
+        sshConfig: {
+          host: '<%= host %>',
+          port: <%= port || 22 %>,
+          username: '<%= username %>',
+          password: '<%= typeof password !== "undefined" ? password : "" %>'
+        },
+        initialPath: '<%= initialPath %>'
+      });
+      
+      // Handle server responses with proper encoding
+      socket.on('response', (data) => {
+        terminalOutput.write(data);
+      });
+      
+      socket.on('message', (data) => {
+        terminalOutput.write(data + '\n', 'info-text');
+      });
+      
+      socket.on('error', (data) => {
+        terminalOutput.write(data + '\n', 'error-text');
+      });
+      
+      socket.on('connect_error', () => {
+        terminalOutput.write('Connection to server failed\n', 'error-text');
+      });
+      
+      // Command history functionality
+      let commandHistory = [];
+      let historyIndex = -1;
+      
+      // Handle command submission
+      commandForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const command = commandInput.value.trim();
+        if (!command) return;
+        
+        // Add to history if it's a new command
+        if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+          commandHistory.push(command);
+        }
+        
+        // Reset history index
+        historyIndex = -1;
+        
+        // Show command in terminal
+        terminalOutput.write(`> ${command}\n`);
+        
+        // Send command to server
+        socket.emit('command', { command });
+        
+        // Clear input
+        commandInput.value = '';
+      });
+      
+      // Execute a command programmatically
+      function executeCommand(command) {
+        if (!command) return;
+        
+        // Add to history
+        if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command) {
+          commandHistory.push(command);
+        }
+        
+        // Reset history index
+        historyIndex = -1;
+        
+        // Show command in terminal
+        terminalOutput.write(`> ${command}\n`);
+        
+        // Send command to server
+        socket.emit('command', { command });
+        
+        // Set input to the executed command (but don't submit it)
+        commandInput.value = command;
+        
+        // Then clear after a short delay
+        setTimeout(() => {
+          commandInput.value = '';
+          commandInput.focus();
+        }, 100);
+      }
+      
+      // Focus input on page load and whenever terminal is clicked
+      commandInput.focus();
+      output.addEventListener('click', () => {
+        commandInput.focus();
+      });
+      
+      // Add event listener for keyboard shortcuts and navigation
+      document.addEventListener('keydown', (e) => {
+        // Focus the input if it's not already focused and user is typing
+        if (document.activeElement !== commandInput && 
+            !e.ctrlKey && !e.altKey && !e.metaKey && 
+            e.key.length === 1) {
+          commandInput.focus();
+        }
+        
+        // Command history with Up/Down arrow keys
+        if (e.key === 'ArrowUp' && document.activeElement === commandInput) {
+          // Navigate command history backwards
+          e.preventDefault();
+          if (commandHistory.length > 0) {
+            if (historyIndex < commandHistory.length - 1) {
+              historyIndex++;
+            }
+            commandInput.value = commandHistory[commandHistory.length - 1 - historyIndex];
+          }
+        } else if (e.key === 'ArrowDown' && document.activeElement === commandInput) {
+          // Navigate command history forwards
+          e.preventDefault();
+          if (historyIndex > 0) {
+            historyIndex--;
+            commandInput.value = commandHistory[commandHistory.length - 1 - historyIndex];
+          } else if (historyIndex === 0) {
+            historyIndex = -1;
+            commandInput.value = '';
+          }
+        } else if (e.key === 'Tab' && document.activeElement === commandInput) {
+          // Prevent tab from moving focus
+          e.preventDefault();
+          // Tab completion could be implemented here
+        }
+        
+        // Command shortcuts
+        if (e.ctrlKey && e.key.toLowerCase() === 'l') {
+          // Ctrl+L: Clear terminal
+          e.preventDefault();
+          terminalOutput.clear();
+          terminalOutput.write('Terminal cleared.\n', 'info-text');
+        } else if (e.altKey && e.key.toLowerCase() === 'd') {
+          // Alt+D: cd ..
+          e.preventDefault();
+          executeCommand('cd ..');
+        } else if (e.altKey && e.key.toLowerCase() === 'l') {
+          // Alt+L: ls -la
+          e.preventDefault();
+          executeCommand('ls -la');
+        } else if (e.altKey && e.key.toLowerCase() === 's') {
+          // Alt+S: npm start
+          e.preventDefault();
+          executeCommand('npm start');
+        } else if (e.altKey && e.key.toLowerCase() === 'r') {
+          // Alt+R: npm run
+          e.preventDefault();
+          commandInput.value = 'npm run ';
+          commandInput.focus();
+        } else if (e.altKey && e.key.toLowerCase() === 'h') {
+          // Alt+H: Toggle shortcuts panel
+          e.preventDefault();
+          toggleShortcutsPanel();
+        }
+      });
+      
+      // Add visual pulse when connection is established
+      function addConnectionPulse() {
+        const statusDot = document.querySelector('.status-dot');
+        statusDot.style.animation = 'pulse 1.5s infinite';
+        
+        // Define the animation
+        const style = document.createElement('style');
+        style.textContent = `
+          @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+      
+      // Set correct charset header for server.js
+      const meta = document.createElement('meta');
+      meta.httpEquiv = 'Content-Type';
+      meta.content = 'text/html; charset=utf-8';
+      document.head.appendChild(meta);
+      
+      addConnectionPulse();
+    });
+  </script>
+</body>
+</html>

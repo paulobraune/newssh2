@@ -1,0 +1,12 @@
+[
+  {
+    "name": "tracklead-generator",
+    "host": "155.138.213.38",
+    "port": "22",
+    "username": "tracklead-generator",
+    "password": "sxESbuPe4W4CFqa1lk5S",
+    "initialPath": "/home/tracklead-generator/htdocs/generator.tracklead.com",
+    "mode": "terminal",
+    "createdAt": "2025-03-19T05:11:48.225Z"
+  }
+]

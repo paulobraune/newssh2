@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="description" content="SSH Client - Secure terminal access to remote servers">
+  <title>SSH Client - Authentication</title>
+  <link rel="stylesheet" href="/css/design-system.css">
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f5f7fa;
+      background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    
+    .login-container {
+      width: 100%;
+      max-width: 420px;
+      padding: 0;
+      margin: 0 1rem;
+    }
+    
+    .company-name {
+      font-size: 1.2rem;
+      color: var(--gray-600);
+      margin-top: 0.5rem;
+    }
+    
+    .login-form {
+      transition: all 0.3s ease;
+    }
+    
+    .login-form:hover {
+      transform: translateY(-5px);
+    }
+    
+    .card-header {
+      background-color: var(--primary);
+      color: white;
+      text-align: center;
+      padding: 1.25rem;
+      border-radius: var(--border-radius-lg) var(--border-radius-lg) 0 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    .card-header img {
+      height: 40px;
+    }
+    
+    .field-icon {
+      float: right;
+      margin-right: 10px;
+      margin-top: -30px;
+      position: relative;
+      z-index: 2;
+      cursor: pointer;
+      color: var(--gray-600);
+    }
+    
+    /* Animation */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .animated {
+      animation: fadeIn 0.5s ease-out forwards;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+      .login-container {
+        margin: 0 0.5rem;
+      }
+      
+      .card-body {
+        padding: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container animated">
+    <div class="card login-form">
+      <div class="card-header">
+        <img src="https://assets.tracklead.com/assets/logo-tracklead-branca.png" alt="TrackLead Logo">
+      </div>
+      
+      <div class="card-body p-4">
+        <% if (error) { %>
+          <div class="alert alert-danger mb-4">
+            <i class="fas fa-exclamation-circle"></i> <%= error %>
+          </div>
+        <% } %>
+        
+        <form action="/login" method="post" id="login-form">
+          <div class="form-group">
+            <label for="username" class="form-label">Username</label>
+            <input 
+              type="text" 
+              id="username" 
+              name="username" 
+              class="form-control" 
+              required 
+              placeholder="Enter your username"
+              autocomplete="username"
+              autocapitalize="none"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="password" class="form-label">Password</label>
+            <div class="password-container">
+              <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                class="form-control" 
+                required 
+                placeholder="Enter your password"
+                autocomplete="current-password"
+              >
+              <span class="field-icon" id="toggle-password">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                  <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block mt-4">Sign In</button>
+        </form>
+      </div>
+      
+      <div class="card-footer text-center p-3">
+        <p class="mb-0" style="color: var(--gray-600);">Secure access to remote servers</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Toggle password visibility
+      const togglePassword = document.getElementById('toggle-password');
+      const passwordField = document.getElementById('password');
+      
+      togglePassword.addEventListener('click', function() {
+        const type = passwordField.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordField.setAttribute('type', type);
+        
+        // Change icon based on password visibility
+        if (type === 'text') {
+          togglePassword.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="m10.79 12.912-1.614-1.615a3.5 3.5 0 0 1-4.474-4.474l-2.06-2.06C.938 6.278 0 8 0 8s3 5.5 8 5.5a7.029 7.029 0 0 0 2.79-.588zM5.21 3.088A7.028 7.028 0 0 1 8 2.5c5 0 8 5.5 8 5.5s-.939 1.721-2.641 3.238l-2.062-2.062a3.5 3.5 0 0 0-4.474-4.474L5.21 3.089z"/>
+              <path d="M5.525 7.646a2.5 2.5 0 0 0 2.829 2.829l-2.83-2.829zm4.95.708-2.829-2.83a2.5 2.5 0 0 1 2.829 2.829zm3.171 6-12-12 .708-.708 12 12-.708.708z"/>
+            </svg>
+          `;
+        } else {
+          togglePassword.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+              <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+              <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+            </svg>
+          `;
+        }
+      });
+      
+      // Add visual feedback on form submission
+      const form = document.getElementById('login-form');
+      const submitButton = form.querySelector('button[type="submit"]');
+      
+      form.addEventListener('submit', function() {
+        submitButton.innerHTML = 'Signing in...';
+        submitButton.disabled = true;
+      });
+      
+      // Basic CSRF protection
+      function addCSRFToken() {
+        const token = generateCSRFToken();
+        localStorage.setItem('csrfToken', token);
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = '_csrf';
+        csrfInput.value = token;
+        form.appendChild(csrfInput);
+      }
+      
+      function generateCSRFToken() {
+        return Array.from(window.crypto.getRandomValues(new Uint8Array(16)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+      }
+      
+      // Apply CSRF protection
+      addCSRFToken();
+    });
+  </script>
+</body>
+</html>

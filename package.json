@@ -1,0 +1,35 @@
+{
+  "name": "ssh-client",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "ssh2": "^1.15.0",
+    "prompt-sync": "^4.2.0",
+    "express": "^4.18.2",
+    "ejs": "^3.1.9",
+    "express-session": "^1.17.3",
+    "body-parser": "^1.20.2",
+    "socket.io": "^4.7.2",
+    "monaco-editor": "^0.43.0",
+    "jszip": "^3.10.1",
+    "archiver": "^5.3.1",
+    "bootstrap": "^5.3.0",
+    "passport": "^0.6.0",
+    "passport-local": "^1.0.0",
+    "connect-redis": "^7.1.0",
+    "redis": "^4.6.10",
+    "express-rate-limit": "^7.1.0",
+    "csurf": "^1.11.0",
+    "helmet": "^7.0.0",
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
+    "express-validator": "^7.0.1",
+    "cors": "^2.8.5",
+    "http-errors": "^2.0.0",
+    "morgan": "^1.10.0"
+  }
+}

@@ -1,0 +1,77 @@
+[
+  {
+    "project_id": "155.138.213.38_tracklead-generator__home_tracklead-generator_htdocs_generator.tracklead.com",
+    "timestamp": "2025-03-19T06:47:30.008Z",
+    "messages": [
+      {
+        "role": "user",
+        "content": "ola",
+        "timestamp": "2025-03-19T06:45:44.233Z",
+        "filePath": null
+      },
+      {
+        "role": "user",
+        "content": "ola",
+        "timestamp": "2025-03-19T06:46:05.958Z",
+        "filePath": null
+      },
+      {
+        "role": "assistant",
+        "content": "Looking at the codebase and your message: \"ola...\", I notice this project implements an SSH client with web interfaces. Let me explain how it works: the server establishes an SSH connection using the ssh2 library, and then exposes functionality through web interfaces using Express and Socket.IO.",
+        "timestamp": "2025-03-19T06:46:07.464Z"
+      },
+      {
+        "role": "user",
+        "content": "eu quero que voce crie pra mim o jogo da cobrinha em uma aplicacao web node.js usando somente ejs",
+        "timestamp": "2025-03-19T06:47:28.501Z",
+        "filePath": null
+      },
+      {
+        "role": "assistant",
+        "content": "Looking at the codebase and your message: \"eu quero que voce cr...\", I notice this project implements an SSH client with web interfaces. Let me explain how it works: the server establishes an SSH connection using the ssh2 library, and then exposes functionality through web interfaces using Express and Socket.IO.",
+        "timestamp": "2025-03-19T06:47:30.008Z"
+      }
+    ],
+    "file_context": []
+  },
+  {
+    "project_id": "155.138.213.38_tracklead-generator__home_tracklead-generator_htdocs_generator.tracklead.com_cobrinha",
+    "timestamp": "2025-03-19T06:52:57.577Z",
+    "messages": [
+      {
+        "role": "user",
+        "content": "ola",
+        "timestamp": "2025-03-19T06:50:37.784Z",
+        "filePath": null
+      },
+      {
+        "role": "assistant",
+        "content": "I've analyzed your message: \"ola...\". Based on the code context, I would suggest looking at how the file structure is organized. Let me know if you'd like me to explain any specific part of the codebase.",
+        "timestamp": "2025-03-19T06:50:39.292Z"
+      },
+      {
+        "role": "user",
+        "content": "Eu quero que voce crie pra mim o jogo da cobrinha em uma aplicacao webnode usando somente ejs com html css js e svg dento do ejs",
+        "timestamp": "2025-03-19T06:51:56.731Z",
+        "filePath": null
+      },
+      {
+        "role": "assistant",
+        "content": "I've analyzed your message: \"Eu quero que voce cr...\". Based on the code context, I would suggest looking at how the file structure is organized. Let me know if you'd like me to explain any specific part of the codebase.",
+        "timestamp": "2025-03-19T06:51:58.243Z"
+      },
+      {
+        "role": "user",
+        "content": "i want to you create de webnode server from zero for me",
+        "timestamp": "2025-03-19T06:52:56.069Z",
+        "filePath": null
+      },
+      {
+        "role": "assistant",
+        "content": "That's a good question about \"i want to you c...\". When working with this kind of project, it's important to consider how the different components interact. I'd recommend checking the file dependencies to understand the relationships better.",
+        "timestamp": "2025-03-19T06:52:57.577Z"
+      }
+    ],
+    "file_context": []
+  }
+]

@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  ssh-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ssh-client
+    restart: unless-stopped
+    ports:
+      - "3011:3011"
+    volumes:
+      - ssh-client-data:/app/data
+      - ssh-client-logs:/app/logs
+      - ssh-client-backups:/app/backups
+    environment:
+      - NODE_ENV=production
+      - PORT=3011
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - REDIS_URL=redis://red-cvbvo9gfnakc73dpfmag:6379
+    healthcheck:
+      test: ["CMD", "node", "scripts/healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  backup-scheduler:
+    image: alpine
+    container_name: ssh-client-backup
+    restart: unless-stopped
+    volumes:
+      - ssh-client-backups:/app/backups
+      - ssh-client-data:/app/data
+    depends_on:
+      - ssh-client
+    command: >
+      sh -c "
+      echo '0 2 * * * cd /app && node scripts/backup.js >> /app/logs/backup.log 2>&1' > /etc/crontabs/root &&
+      crond -f -d 8
+      "
+
+volumes:
+  ssh-client-data:
+  ssh-client-logs:
+  ssh-client-backups:
